@@ -1,5 +1,3 @@
-# tests/test_app.py
-
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
@@ -12,7 +10,6 @@ client = TestClient(app)
 # -----------------------------
 # Helpers
 # -----------------------------
-
 
 def create_mock_connection():
     mock_conn = MagicMock()
@@ -27,24 +24,23 @@ def create_mock_connection():
 # Health Check
 # -----------------------------
 
-
 def test_health():
     response = client.get("/")
 
     assert response.status_code == 200
-    assert response.json() == {"message": "Supply Service is running"}
+    assert response.json() == {
+        "message": "Supply Service is running"
+    }
 
 
 # -----------------------------
 # Create Item
 # -----------------------------
 
-
 @patch("app.get_connection")
 def test_create_item_success(mock_get_connection):
 
     mock_conn, mock_cursor = create_mock_connection()
-
     mock_cursor.fetchone.return_value = [1]
 
     mock_get_connection.return_value = mock_conn
@@ -60,7 +56,10 @@ def test_create_item_success(mock_get_connection):
     response = client.post("/items", json=payload)
 
     assert response.status_code == 200
-    assert response.json() == {"message": "Item created successfully", "id": 1}
+    assert response.json() == {
+        "message": "Item created successfully",
+        "id": 1,
+    }
 
     mock_conn.commit.assert_called_once()
 
@@ -69,13 +68,14 @@ def test_create_item_success(mock_get_connection):
 # Get Items
 # -----------------------------
 
-
 @patch("app.get_connection")
 def test_get_items(mock_get_connection):
 
     mock_conn, mock_cursor = create_mock_connection()
 
-    mock_cursor.fetchall.return_value = [(1, "Laptop", "Dell", 10, 10, "available")]
+    mock_cursor.fetchall.return_value = [
+        (1, "Laptop", "Dell", 10, 10, "available")
+    ]
 
     mock_cursor.description = [
         ("id",),
@@ -103,13 +103,14 @@ def test_get_items(mock_get_connection):
 # Get Single Item
 # -----------------------------
 
-
 @patch("app.get_connection")
 def test_get_item_success(mock_get_connection):
 
     mock_conn, mock_cursor = create_mock_connection()
 
-    mock_cursor.fetchone.return_value = (1, "Laptop", "Dell", 10, 10, "available")
+    mock_cursor.fetchone.return_value = (
+        1, "Laptop", "Dell", 10, 10, "available"
+    )
 
     mock_cursor.description = [
         ("id",),
@@ -151,12 +152,10 @@ def test_get_item_not_found(mock_get_connection):
 # Update Item
 # -----------------------------
 
-
 @patch("app.get_connection")
 def test_update_item_success(mock_get_connection):
 
     mock_conn, mock_cursor = create_mock_connection()
-
     mock_get_connection.return_value = mock_conn
 
     payload = {"name": "Updated Laptop"}
@@ -164,7 +163,9 @@ def test_update_item_success(mock_get_connection):
     response = client.put("/items/1", json=payload)
 
     assert response.status_code == 200
-    assert response.json() == {"message": "Item updated successfully"}
+    assert response.json() == {
+        "message": "Item updated successfully"
+    }
 
     mock_conn.commit.assert_called_once()
 
@@ -173,13 +174,10 @@ def test_update_item_success(mock_get_connection):
 def test_update_item_no_fields(mock_get_connection):
 
     mock_conn, mock_cursor = create_mock_connection()
-
     mock_get_connection.return_value = mock_conn
 
     response = client.put("/items/1", json={})
 
-    # Your current implementation converts HTTPException(400)
-    # into 500 because of broad exception handling
     assert response.status_code == 500
 
 
@@ -187,20 +185,20 @@ def test_update_item_no_fields(mock_get_connection):
 # Delete Item
 # -----------------------------
 
-
 @patch("app.get_connection")
 def test_delete_item_success(mock_get_connection):
 
     mock_conn, mock_cursor = create_mock_connection()
 
     mock_cursor.rowcount = 1
-
     mock_get_connection.return_value = mock_conn
 
     response = client.delete("/items/1")
 
     assert response.status_code == 200
-    assert response.json() == {"message": "Item deleted successfully"}
+    assert response.json() == {
+        "message": "Item deleted successfully"
+    }
 
 
 @patch("app.get_connection")
@@ -209,12 +207,10 @@ def test_delete_item_not_found(mock_get_connection):
     mock_conn, mock_cursor = create_mock_connection()
 
     mock_cursor.rowcount = 0
-
     mock_get_connection.return_value = mock_conn
 
     response = client.delete("/items/999")
 
-    # Current implementation wraps HTTPException in 500
     assert response.status_code == 500
 
 
@@ -222,19 +218,18 @@ def test_delete_item_not_found(mock_get_connection):
 # Reserve Item
 # -----------------------------
 
-
 @patch("app.get_connection")
 def test_reserve_item_success(mock_get_connection):
 
     mock_conn, mock_cursor = create_mock_connection()
 
-    # First fetchone -> item available count
-    # Second fetchone -> inserted reservation id
     mock_cursor.fetchone.side_effect = [(10,), (5,)]
-
     mock_get_connection.return_value = mock_conn
 
-    payload = {"rental_id": 101, "reserved_count": 2}
+    payload = {
+        "rental_id": 101,
+        "reserved_count": 2,
+    }
 
     response = client.post("/items/1/reserve", json=payload)
 
@@ -252,14 +247,15 @@ def test_reserve_item_not_enough_stock(mock_get_connection):
     mock_conn, mock_cursor = create_mock_connection()
 
     mock_cursor.fetchone.return_value = (1,)
-
     mock_get_connection.return_value = mock_conn
 
-    payload = {"rental_id": 101, "reserved_count": 5}
+    payload = {
+        "rental_id": 101,
+        "reserved_count": 5,
+    }
 
     response = client.post("/items/1/reserve", json=payload)
 
-    # Current implementation wraps HTTPException in 500
     assert response.status_code == 500
 
 
@@ -267,19 +263,18 @@ def test_reserve_item_not_enough_stock(mock_get_connection):
 # Release Item
 # -----------------------------
 
-
 @patch("app.get_connection")
 def test_release_item_success(mock_get_connection):
 
     mock_conn, mock_cursor = create_mock_connection()
 
-    # reservation lookup
-    # item lookup
     mock_cursor.fetchone.side_effect = [(1, 2, "reserved"), (8,)]
-
     mock_get_connection.return_value = mock_conn
 
-    payload = {"rental_id": 101, "reserved_count": 2}
+    payload = {
+        "rental_id": 101,
+        "reserved_count": 2,
+    }
 
     response = client.post("/items/1/release", json=payload)
 
@@ -297,12 +292,13 @@ def test_release_item_not_found(mock_get_connection):
     mock_conn, mock_cursor = create_mock_connection()
 
     mock_cursor.fetchone.return_value = None
-
     mock_get_connection.return_value = mock_conn
 
-    payload = {"rental_id": 101, "reserved_count": 2}
+    payload = {
+        "rental_id": 101,
+        "reserved_count": 2,
+    }
 
     response = client.post("/items/1/release", json=payload)
 
-    # Current implementation wraps HTTPException in 500
     assert response.status_code == 500
