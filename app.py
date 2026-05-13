@@ -1,13 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from database import get_connection
-from models import (
-    ItemCreate,
-    ItemUpdate,
-    ReservationCreate
-)
-
-import random
-from datetime import datetime
+from models import ItemCreate, ItemUpdate, ReservationCreate
 
 app = FastAPI()
 
@@ -20,6 +13,7 @@ RESERVATIONS_TABLE = "reservations"
 @app.get("/")
 def health():
     return {"message": "Supply Service is running"}
+
 
 @app.get("/setup")
 def setup_database():
@@ -81,9 +75,7 @@ def setup_database():
 
         conn.commit()
 
-        return {
-            "message": "Supply service tables created successfully"
-        }
+        return {"message": "Supply service tables created successfully"}
 
     except Exception as e:
         conn.rollback()
@@ -93,6 +85,7 @@ def setup_database():
         cursor.close()
         conn.close()
 
+
 @app.post("/items")
 def create_item(item: ItemCreate):
 
@@ -101,7 +94,8 @@ def create_item(item: ItemCreate):
 
     try:
 
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
         INSERT INTO [{SCHEMA_NAME}].[{ITEMS_TABLE}]
         (
             name,
@@ -113,22 +107,20 @@ def create_item(item: ItemCreate):
         OUTPUT INSERTED.id
         VALUES (?, ?, ?, ?, ?)
         """,
-        (
-            item.name,
-            item.description,
-            item.total_count,
-            item.available_count,
-            item.status
-        ))
+            (
+                item.name,
+                item.description,
+                item.total_count,
+                item.available_count,
+                item.status,
+            ),
+        )
 
         item_id = cursor.fetchone()[0]
 
         conn.commit()
 
-        return {
-            "message": "Item created successfully",
-            "id": item_id
-        }
+        return {"message": "Item created successfully", "id": item_id}
 
     except Exception as e:
         conn.rollback()
@@ -137,6 +129,7 @@ def create_item(item: ItemCreate):
     finally:
         cursor.close()
         conn.close()
+
 
 @app.get("/items")
 def get_items():
@@ -155,14 +148,12 @@ def get_items():
 
         columns = [column[0] for column in cursor.description]
 
-        return [
-            dict(zip(columns, row))
-            for row in rows
-        ]
+        return [dict(zip(columns, row)) for row in rows]
 
     finally:
         cursor.close()
         conn.close()
+
 
 @app.get("/items/{id}")
 def get_item(id: int):
@@ -172,11 +163,14 @@ def get_item(id: int):
 
     try:
 
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
         SELECT *
         FROM [{SCHEMA_NAME}].[{ITEMS_TABLE}]
         WHERE id = ?
-        """, (id,))
+        """,
+            (id,),
+        )
 
         row = cursor.fetchone()
 
@@ -190,6 +184,7 @@ def get_item(id: int):
     finally:
         cursor.close()
         conn.close()
+
 
 @app.put("/items/{id}")
 def update_item(id: int, item: ItemUpdate):
@@ -223,9 +218,7 @@ def update_item(id: int, item: ItemUpdate):
 
         conn.commit()
 
-        return {
-            "message": "Item updated successfully"
-        }
+        return {"message": "Item updated successfully"}
 
     except Exception as e:
         conn.rollback()
@@ -234,6 +227,7 @@ def update_item(id: int, item: ItemUpdate):
     finally:
         cursor.close()
         conn.close()
+
 
 @app.delete("/items/{id}")
 def delete_item(id: int):
@@ -243,19 +237,20 @@ def delete_item(id: int):
 
     try:
 
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
         DELETE FROM [{SCHEMA_NAME}].[{ITEMS_TABLE}]
         WHERE id = ?
-        """, (id,))
+        """,
+            (id,),
+        )
 
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="Item not found")
 
         conn.commit()
 
-        return {
-            "message": "Item deleted successfully"
-        }
+        return {"message": "Item deleted successfully"}
 
     except Exception as e:
         conn.rollback()
@@ -265,11 +260,9 @@ def delete_item(id: int):
         cursor.close()
         conn.close()
 
+
 @app.post("/items/{id}/reserve")
-def reserve_item(
-    id: int,
-    reservation: ReservationCreate
-):
+def reserve_item(id: int, reservation: ReservationCreate):
 
     conn = get_connection()
     cursor = conn.cursor()
@@ -277,11 +270,14 @@ def reserve_item(
     try:
 
         # GET ITEM
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
         SELECT available_count
         FROM [{SCHEMA_NAME}].[{ITEMS_TABLE}]
         WHERE id = ?
-        """, (id,))
+        """,
+            (id,),
+        )
 
         row = cursor.fetchone()
 
@@ -291,22 +287,23 @@ def reserve_item(
         available_count = row[0]
 
         if available_count < reservation.reserved_count:
-            raise HTTPException(
-                status_code=400,
-                detail="Not enough items available"
-            )
+            raise HTTPException(status_code=400, detail="Not enough items available")
 
         # UPDATE AVAILABLE COUNT
         new_available = available_count - reservation.reserved_count
 
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
         UPDATE [{SCHEMA_NAME}].[{ITEMS_TABLE}]
         SET available_count = ?
         WHERE id = ?
-        """, (new_available, id))
+        """,
+            (new_available, id),
+        )
 
         # CREATE RESERVATION
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
         INSERT INTO [{SCHEMA_NAME}].[{RESERVATIONS_TABLE}]
         (
             item_id,
@@ -317,12 +314,8 @@ def reserve_item(
         OUTPUT INSERTED.id
         VALUES (?, ?, ?, ?)
         """,
-        (
-            id,
-            reservation.rental_id,
-            reservation.reserved_count,
-            "reserved"
-        ))
+            (id, reservation.rental_id, reservation.reserved_count, "reserved"),
+        )
 
         reservation_id = cursor.fetchone()[0]
 
@@ -331,7 +324,7 @@ def reserve_item(
         return {
             "message": "Item reserved successfully",
             "reservation_id": reservation_id,
-            "available_count": new_available
+            "available_count": new_available,
         }
 
     except Exception as e:
@@ -342,11 +335,9 @@ def reserve_item(
         cursor.close()
         conn.close()
 
+
 @app.post("/items/{id}/release")
-def release_item(
-    id: int,
-    reservation: ReservationCreate
-):
+def release_item(id: int, reservation: ReservationCreate):
 
     conn = get_connection()
     cursor = conn.cursor()
@@ -354,35 +345,34 @@ def release_item(
     try:
 
         # FIND RESERVATION
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
         SELECT id, reserved_count, status
         FROM [{SCHEMA_NAME}].[{RESERVATIONS_TABLE}]
         WHERE item_id = ?
         AND rental_id = ?
         AND status = 'reserved'
         """,
-        (
-            id,
-            reservation.rental_id
-        ))
+            (id, reservation.rental_id),
+        )
 
         row = cursor.fetchone()
 
         if not row:
-            raise HTTPException(
-                status_code=404,
-                detail="Active reservation not found"
-            )
+            raise HTTPException(status_code=404, detail="Active reservation not found")
 
         reservation_id = row[0]
         reserved_count = row[1]
 
         # GET ITEM
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
         SELECT available_count
         FROM [{SCHEMA_NAME}].[{ITEMS_TABLE}]
         WHERE id = ?
-        """, (id,))
+        """,
+            (id,),
+        )
 
         item = cursor.fetchone()
 
@@ -391,24 +381,30 @@ def release_item(
         new_available = available_count + reserved_count
 
         # UPDATE ITEM
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
         UPDATE [{SCHEMA_NAME}].[{ITEMS_TABLE}]
         SET available_count = ?
         WHERE id = ?
-        """, (new_available, id))
+        """,
+            (new_available, id),
+        )
 
         # UPDATE RESERVATION
-        cursor.execute(f"""
+        cursor.execute(
+            f"""
         UPDATE [{SCHEMA_NAME}].[{RESERVATIONS_TABLE}]
         SET status = 'released'
         WHERE id = ?
-        """, (reservation_id,))
+        """,
+            (reservation_id,),
+        )
 
         conn.commit()
 
         return {
             "message": "Reservation released successfully",
-            "available_count": new_available
+            "available_count": new_available,
         }
 
     except Exception as e:
