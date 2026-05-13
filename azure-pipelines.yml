@@ -24,9 +24,22 @@ stages:
         python -m flake8 .
       displayName: "Run flake8"
 
-- stage: Tests
-  dependsOn: Lint
+- stage: Test
+  displayName: "Run Tests"
   jobs:
   - job: pytest
     steps:
-    - script: pytest -v
+
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.12'
+
+    - script: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest httpx
+      displayName: "Install dependencies"
+
+    - script: |
+        python -m pytest -v
+      displayName: "Run tests"
