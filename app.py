@@ -1,7 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from database import get_connection
 from models import ItemCreate, ItemUpdate, ReservationCreate
+from fastapi import HTTPException
+from logging_config import get_logger
 
+logger = get_logger("supply-service")
 app = FastAPI()
 
 SCHEMA_NAME = "UladzislauMikhayevich"
@@ -11,11 +14,13 @@ RESERVATIONS_TABLE = "reservations"
 
 @app.get("/")
 def health():
+    logger.info("Health check called")
     return {"message": "Supply Service is running"}
 
 
 @app.get("/setup")
 def setup_database():
+    logger.info("Setup database")
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -87,6 +92,7 @@ def setup_database():
 
 @app.post("/items")
 def create_item(item: ItemCreate):
+    logger.info("Post item")
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -123,6 +129,7 @@ def create_item(item: ItemCreate):
 
 @app.get("/items")
 def get_items():
+    logger.info("Get items")
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -143,6 +150,7 @@ def get_items():
 
 @app.get("/items/{id}")
 def get_item(id: int):
+    logger.info("Get item")
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -172,6 +180,7 @@ def get_item(id: int):
 
 @app.put("/items/{id}")
 def update_item(id: int, item: ItemUpdate):
+    logger.info("Put item")
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -212,6 +221,7 @@ def update_item(id: int, item: ItemUpdate):
 
 @app.delete("/items/{id}")
 def delete_item(id: int):
+    logger.info("Delete item")
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -241,6 +251,7 @@ def delete_item(id: int):
 
 @app.post("/items/{id}/reserve")
 def reserve_item(id: int, reservation: ReservationCreate):
+    logger.info(f"Post item reserve {id}")
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -310,6 +321,7 @@ def reserve_item(id: int, reservation: ReservationCreate):
 
 @app.post("/items/{id}/release")
 def release_item(id: int, reservation: ReservationCreate):
+    logger.info(f"Item release {id}")
     conn = get_connection()
     cursor = conn.cursor()
 
