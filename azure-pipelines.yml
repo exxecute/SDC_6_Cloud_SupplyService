@@ -6,10 +6,23 @@ pool:
 
 stages:
 - stage: Lint
+  displayName: "Flake8 Linting"
   jobs:
   - job: flake8
     steps:
-    - script: flake8 .
+
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.12'
+
+    - script: |
+        python -m pip install --upgrade pip
+        pip install flake8
+      displayName: "Install flake8"
+
+    - script: |
+        python -m flake8 .
+      displayName: "Run flake8"
 
 - stage: Tests
   dependsOn: Lint
