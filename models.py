@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
-
+import strawberry
 
 class ItemCreate(BaseModel):
     name: str
